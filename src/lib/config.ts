@@ -5,9 +5,13 @@ export const deepseekModelOptions = [
   { label: "DeepSeek V4 Pro", value: "deepseek-v4-pro" }
 ];
 
+function normalizeSupabaseUrl(url: string): string {
+  return url.trim().replace(/\/rest\/v1\/?$/, "").replace(/\/$/, "");
+}
+
 export const defaultConfig: AppConfig = {
-  supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-  supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
+  supabaseUrl: normalizeSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL || ""),
+  supabaseKey: (process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "").trim(),
   deepseekModel: "deepseek-v4-flash"
 };
 
@@ -44,6 +48,10 @@ export function saveConfig(config: AppConfig): void {
   window.localStorage.setItem(storageKey, JSON.stringify({ deepseekModel: config.deepseekModel }));
 }
 
+export function hasSupabaseConfig(config: AppConfig): boolean {
+  return Boolean(config.supabaseUrl && config.supabaseKey);
+}
+
 export function hasRequiredConfig(config: AppConfig): boolean {
-  return Boolean(config.supabaseUrl && config.supabaseKey && config.deepseekModel);
+  return Boolean(hasSupabaseConfig(config) && config.deepseekModel);
 }

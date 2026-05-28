@@ -3,25 +3,31 @@ import type { AppConfig, JobPost, TalentRecord } from "./types";
 
 type JobPostRow = {
   id?: number;
-  job: string;
-  desc: string;
+  name: string;
+  requirement: string;
   scoring_criteria: string;
 };
 
 type TalentPoolRow = {
   id?: number;
-  name: string;
+  real_name: string;
   phone: string;
   email: string;
   education: string;
-  school: string;
-  work_years: string;
-  target_position: string;
+  graduate_school: string;
+  work_years: number;
+  apply_position: string;
   resume_content: string;
-  resume_score: string;
+  resume_score: number;
   evaluation: string;
   created_at?: string;
+  updated_at?: string;
 };
+
+function toInteger(value: string): number {
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) ? Math.trunc(parsed) : 0;
+}
 
 export function createBrowserSupabaseClient(config: AppConfig): SupabaseClient {
   return createClient(config.supabaseUrl, config.supabaseKey, {
@@ -35,8 +41,8 @@ export function createBrowserSupabaseClient(config: AppConfig): SupabaseClient {
 export function mapJobPost(row: JobPostRow): JobPost {
   return {
     id: row.id,
-    job: row.job,
-    desc: row.desc,
+    job: row.name,
+    desc: row.requirement,
     scoringCriteria: row.scoring_criteria
   };
 }
@@ -44,15 +50,15 @@ export function mapJobPost(row: JobPostRow): JobPost {
 export function mapTalentRecord(row: TalentPoolRow): TalentRecord {
   return {
     id: row.id,
-    name: row.name,
+    name: row.real_name,
     phone: row.phone,
     email: row.email,
     education: row.education,
-    school: row.school,
-    workYears: row.work_years,
-    targetPosition: row.target_position,
+    school: row.graduate_school,
+    workYears: String(row.work_years),
+    targetPosition: row.apply_position,
     resumeContent: row.resume_content,
-    resumeScore: row.resume_score,
+    resumeScore: String(row.resume_score),
     evaluation: row.evaluation,
     createdAt: row.created_at
   };
@@ -60,37 +66,30 @@ export function mapTalentRecord(row: TalentPoolRow): TalentRecord {
 
 export function toTalentPoolRow(record: TalentRecord): TalentPoolRow {
   return {
-    name: record.name,
+    real_name: record.name,
     phone: record.phone,
     email: record.email,
     education: record.education,
-    school: record.school,
-    work_years: record.workYears,
-    target_position: record.targetPosition,
+    graduate_school: record.school,
+    work_years: toInteger(record.workYears),
+    apply_position: record.targetPosition,
     resume_content: record.resumeContent,
-    resume_score: record.resumeScore,
+    resume_score: toInteger(record.resumeScore),
     evaluation: record.evaluation
   };
 }
 
-export async function findJobPost(config: AppConfig, jobName: string): Promise<JobPost> {
+export async function listJobPosts(config: AppConfig): Promise<JobPost[]> {
   const supabase = createBrowserSupabaseClient(config);
   const { data, error } = await supabase
     .from("job_post")
-    .select("id, job, desc, scoring_criteria")
-    .eq("job", jobName)
-    .limit(1)
-    .maybeSingle();
+    .select("id, name, requirement, scoring_criteria");
 
   if (error) {
     throw new Error(`读取岗位失败：${error.message}`);
   }
 
-  if (!data) {
-    throw new Error(`岗位表中没有找到「${jobName}」`);
-  }
-
-  return mapJobPost(data as JobPostRow);
+  return ((data || []) as JobPostRow[]).map(mapJobPost);
 }
 
 export async function insertTalentRecord(config: AppConfig, record: TalentRecord): Promise<TalentRecord> {

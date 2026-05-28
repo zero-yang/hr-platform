@@ -12,8 +12,8 @@ describe("config", () => {
   it("loads Supabase settings from environment variables and model from local storage", async () => {
     process.env = {
       ...originalEnv,
-      NEXT_PUBLIC_SUPABASE_URL: "https://env.supabase.co",
-      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_env"
+      NEXT_PUBLIC_SUPABASE_URL: " https://env.supabase.co/rest/v1/ ",
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: " sb_publishable_env "
     };
     window.localStorage.setItem(
       "hr-platform-config",
@@ -34,16 +34,24 @@ describe("config", () => {
     });
   });
 
-  it("requires Supabase environment variables and the model", async () => {
+  it("checks Supabase environment variables separately from the model", async () => {
     process.env = {
       ...originalEnv,
       NEXT_PUBLIC_SUPABASE_URL: "",
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ""
     };
 
-    const { defaultConfig, hasRequiredConfig } = await import("../config");
+    const { defaultConfig, hasRequiredConfig, hasSupabaseConfig } = await import("../config");
 
+    expect(hasSupabaseConfig(defaultConfig)).toBe(false);
     expect(hasRequiredConfig(defaultConfig)).toBe(false);
+    expect(
+      hasSupabaseConfig({
+        supabaseUrl: "https://env.supabase.co",
+        supabaseKey: "sb_publishable_env",
+        deepseekModel: ""
+      })
+    ).toBe(true);
     expect(
       hasRequiredConfig({
         supabaseUrl: "https://env.supabase.co",

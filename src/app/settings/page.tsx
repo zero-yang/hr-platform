@@ -1,13 +1,14 @@
 "use client";
 
 import { CheckCircleOutlined } from "@ant-design/icons";
-import { Alert, Button, Form, Select, Space, message } from "antd";
+import { Alert, App as AntdApp, Button, Form, Select, Space } from "antd";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { deepseekModelOptions, defaultConfig, loadConfig, saveConfig } from "@/lib/config";
 import type { AppConfig } from "@/lib/types";
 
 export default function SettingsPage() {
+  const { message } = AntdApp.useApp();
   const [form] = Form.useForm<AppConfig>();
   const [saved, setSaved] = useState(false);
 
@@ -29,14 +30,6 @@ export default function SettingsPage() {
           <p>选择 DeepSeek 模型。Supabase 与 DeepSeek Key 由环境变量提供。</p>
         </div>
       </div>
-
-      <Alert
-        showIcon
-        type="info"
-        message="环境变量"
-        description="请在本地 .env.local 或线上部署环境中配置 Supabase URL、Supabase publishable/anon key 和 DeepSeek API Key。"
-        className="sectionGap"
-      />
 
       <section className="panel narrowPanel">
         <Form form={form} layout="vertical" initialValues={defaultConfig} onFinish={handleSave}>

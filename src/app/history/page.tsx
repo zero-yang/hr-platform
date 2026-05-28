@@ -1,15 +1,16 @@
 "use client";
 
 import { ReloadOutlined } from "@ant-design/icons";
-import { Alert, Button, Input, Space, Table, Tag, message } from "antd";
+import { Alert, App as AntdApp, Button, Input, Space, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/AppShell";
-import { hasRequiredConfig, loadConfig } from "@/lib/config";
+import { hasSupabaseConfig, loadConfig } from "@/lib/config";
 import { listTalentRecords } from "@/lib/supabase";
 import type { TalentRecord } from "@/lib/types";
 
 export default function HistoryPage() {
+  const { message } = AntdApp.useApp();
   const config = useMemo(loadConfig, []);
   const [records, setRecords] = useState<TalentRecord[]>([]);
   const [keyword, setKeyword] = useState("");
@@ -87,7 +88,7 @@ export default function HistoryPage() {
   ];
 
   async function loadRecords() {
-    if (!hasRequiredConfig(config)) {
+    if (!hasSupabaseConfig(config)) {
       return;
     }
 
@@ -110,7 +111,6 @@ export default function HistoryPage() {
       <div className="pageHeader">
         <div>
           <h1>历史记录</h1>
-          <p>查看已保存到 Supabase talent_pool 表的人才记录和评估结果。</p>
         </div>
         <Space wrap>
           <Input.Search placeholder="搜索姓名、岗位、学校、评价" allowClear onSearch={setKeyword} onChange={(event) => setKeyword(event.target.value)} />
@@ -120,7 +120,7 @@ export default function HistoryPage() {
         </Space>
       </div>
 
-      {!hasRequiredConfig(config) ? (
+      {!hasSupabaseConfig(config) ? (
         <Alert showIcon type="warning" message="配置未完成" description="请先配置 Supabase 环境变量。" />
       ) : (
         <section className="panel">

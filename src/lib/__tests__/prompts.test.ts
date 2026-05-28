@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildResumeExtractPrompt, buildResumeScorePrompt } from "../prompts";
+import { buildJobMatchPrompt, buildResumeExtractPrompt, buildResumeScorePrompt } from "../prompts";
 
 describe("prompt builders", () => {
   it("fills the resume content in the extract prompt", () => {
@@ -24,5 +24,27 @@ describe("prompt builders", () => {
     expect(prompt).toContain("# 岗位要求\n熟悉 React 和工程化");
     expect(prompt).toContain("# 评分标准\nReact 40分");
     expect(prompt).toContain("# 候选人简历\n候选人熟悉 Next.js");
+  });
+
+  it("builds a job match prompt with numbered candidates", () => {
+    const prompt = buildJobMatchPrompt("产品经理", [
+      {
+        id: 1,
+        job: "高级产品经理",
+        desc: "负责医疗 AI 产品规划",
+        scoringCriteria: "产品经验 50分"
+      },
+      {
+        id: 2,
+        job: "前端工程师",
+        desc: "负责 Web 前端开发",
+        scoringCriteria: "React 50分"
+      }
+    ]);
+
+    expect(prompt).toContain("# 简历提取出的求职岗位\n产品经理");
+    expect(prompt).toContain("候选编号：1");
+    expect(prompt).toContain("岗位名称：高级产品经理");
+    expect(prompt).toContain('"candidateNumber"');
   });
 });

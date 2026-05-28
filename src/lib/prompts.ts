@@ -1,5 +1,39 @@
 import type { JobPost } from "./types";
 
+export function buildJobMatchPrompt(targetPosition: string, jobPosts: JobPost[]): string {
+  const candidates = jobPosts
+    .map(
+      (jobPost, index) => `候选编号：${index + 1}
+岗位名称：${jobPost.job}
+岗位要求：${jobPost.desc}
+评分标准：${jobPost.scoringCriteria}`
+    )
+    .join("\n\n");
+
+  return `# 角色
+你是一位资深HR招聘专家，请根据简历中提取出的求职岗位，从岗位表候选项中选择最合适的一条。
+
+# 匹配原则
+1. 不要求岗位名称完全一致，可以基于语义、职级、方向和业务领域进行模糊匹配
+2. 优先匹配岗位名称，其次参考岗位要求和评分标准
+3. 只能从候选岗位中选择，不要编造岗位
+4. 如果多个岗位都相关，选择最接近求职岗位的一条
+
+# 简历提取出的求职岗位
+${targetPosition}
+
+# 候选岗位
+${candidates}
+
+# 输出要求
+请严格按照以下 JSON 格式输出，不要输出任何其他内容：
+{
+  "candidateNumber": 候选编号数字,
+  "reason": "选择该岗位的简短原因"
+}
+`;
+}
+
 export function buildResumeExtractPrompt(resumeContent: string): string {
   return `# 角色
 你是一位资深HR招聘专家，请从提供的简历内容中提取结构化信息。请严格按照JSON格式输出，确保信息完整准确：

@@ -1,20 +1,19 @@
 "use client";
 
 import { InboxOutlined, ReloadOutlined } from "@ant-design/icons";
-import { Alert, Button, Form, Input, Progress, Space, Table, Tag, Upload, message } from "antd";
+import { Alert, App as AntdApp, Button, Progress, Space, Table, Tag, Upload } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { RcFile, UploadFile } from "antd/es/upload/interface";
 import { useMemo, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { hasRequiredConfig, loadConfig } from "@/lib/config";
-import { findJobPost } from "@/lib/supabase";
 import type { ProcessingResult } from "@/lib/types";
 import { processResumeFile } from "@/lib/workflow";
 
 const { Dragger } = Upload;
 
 export default function UploadPage() {
-  const [form] = Form.useForm<{ jobName: string }>();
+  const { message } = AntdApp.useApp();
   const [files, setFiles] = useState<UploadFile[]>([]);
   const [results, setResults] = useState<ProcessingResult[]>([]);
   const [processing, setProcessing] = useState(false);
@@ -62,8 +61,6 @@ export default function UploadPage() {
   ];
 
   async function handleProcess() {
-    const { jobName } = await form.validateFields();
-
     if (!hasRequiredConfig(config)) {
       message.error("请先配置 Supabase 环境变量，并在系统配置页选择模型");
       return;
@@ -83,17 +80,17 @@ export default function UploadPage() {
     setCurrentIndex(0);
 
     try {
-      const jobInfo = await findJobPost(config, jobName);
       const nextResults: ProcessingResult[] = [];
 
       for (const [index, file] of pdfFiles.entries()) {
         setCurrentIndex(index + 1);
-        const result = await processResumeFile(config, file, jobName, jobInfo);
+        const result = await processResumeFile(config, file);
         nextResults.push(result);
         setResults([...nextResults]);
+        if (result.status === "failed") {
+          message.error(`${file.name}：${result.error || "处理失败"}`);
+        }
       }
-
-      message.success("批量处理完成");
     } finally {
       setProcessing(false);
     }
@@ -119,35 +116,22 @@ export default function UploadPage() {
       )}
 
       <section className="panel">
-        <Form form={form} layout="vertical">
-          <Form.Item
-            label="岗位名称"
-            name="jobName"
-            rules={[{ required: true, message: "请输入岗位名称" }]}
-            extra="岗位名称会用于从 Supabase 的 job_post 表中读取岗位要求和评分标准。"
-          >
-            <Input placeholder="例如：前端工程师" size="large" />
-          </Form.Item>
+        <Dragger
+          multiple
+          accept="application/pdf,.pdf"
+          beforeUpload={() => false}
+          fileList={files}
+          onChange={({ fileList }) => setFiles(fileList.filter((file) => file.type === "application/pdf"))}
+          disabled={processing}
+        >
+          <p className="ant-upload-drag-icon">
+            <InboxOutlined />
+          </p>
+          <p className="ant-upload-text">拖拽 PDF 到这里，或点击选择文件</p>
+          <p className="ant-upload-hint">系统会从简历中提取求职岗位，并读取对应岗位要求和评分标准。</p>
+        </Dragger>
 
-          <Form.Item label="PDF 简历">
-            <Dragger
-              multiple
-              accept="application/pdf,.pdf"
-              beforeUpload={() => false}
-              fileList={files}
-              onChange={({ fileList }) => setFiles(fileList.filter((file) => file.type === "application/pdf"))}
-              disabled={processing}
-            >
-              <p className="ant-upload-drag-icon">
-                <InboxOutlined />
-              </p>
-              <p className="ant-upload-text">拖拽 PDF 到这里，或点击选择文件</p>
-              <p className="ant-upload-hint">支持批量上传，处理过程会逐个读取、提取、评分并保存。</p>
-            </Dragger>
-          </Form.Item>
-        </Form>
-
-        <Space wrap>
+        <Space wrap className="uploadActions">
           <Button type="primary" size="large" loading={processing} onClick={handleProcess}>
             开始筛选
           </Button>
@@ -158,7 +142,6 @@ export default function UploadPage() {
             onClick={() => {
               setFiles([]);
               setResults([]);
-              form.resetFields();
             }}
           >
             重置

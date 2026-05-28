@@ -1,23 +1,32 @@
-import { extractResumeInfo, scoreResume } from "./deepseek";
+import { extractResumeInfo, matchJobPost, scoreResume } from "./deepseek";
 import { readPdfText } from "./pdf";
-import { findJobPost, insertTalentRecord } from "./supabase";
-import type { AppConfig, ProcessingResult, TalentRecord } from "./types";
+import { insertTalentRecord, listJobPosts } from "./supabase";
+import type { AppConfig, JobPost, ProcessingResult, TalentRecord } from "./types";
 
 export async function processResumeFile(
   config: AppConfig,
   file: File,
-  jobName: string,
-  cachedJob?: Awaited<ReturnType<typeof findJobPost>>
+  cachedJob?: JobPost
 ): Promise<ProcessingResult> {
   try {
     const resumeContent = await readPdfText(file);
-    const jobInfo = cachedJob || (await findJobPost(config, jobName));
     const basicInfo = await extractResumeInfo(config, resumeContent);
+    const jobName = basicInfo.targetPosition;
+    if (!jobName || jobName === "未提供") {
+      throw new Error("简历中未提取到求职岗位，无法匹配岗位要求");
+    }
+
+    const jobPosts = cachedJob ? [cachedJob] : await listJobPosts(config);
+    if (jobPosts.length === 0) {
+      throw new Error("岗位表查询结果为空，请检查 Supabase 项目环境变量是否正确，以及 job_post 表是否允许当前 anon/publishable 角色读取（RLS select policy）。");
+    }
+
+    const jobInfo = cachedJob || (await matchJobPost(config, jobName, jobPosts));
     const scoreInfo = await scoreResume(config, jobInfo, resumeContent);
 
     const record: TalentRecord = {
       ...basicInfo,
-      targetPosition: basicInfo.targetPosition === "未提供" ? jobName : basicInfo.targetPosition,
+      targetPosition: jobName,
       resumeContent,
       resumeScore: String(scoreInfo.score),
       evaluation: scoreInfo.evaluation
@@ -41,7 +50,7 @@ export async function processResumeFile(
       education: "未提供",
       school: "未提供",
       workYears: "未提供",
-      targetPosition: jobName,
+      targetPosition: "未提供",
       resumeContent: "",
       resumeScore: "0",
       evaluation: "处理失败"
